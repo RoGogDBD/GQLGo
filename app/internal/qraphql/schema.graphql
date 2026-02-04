@@ -1,0 +1,89 @@
+enum CommentOrder {
+    NEWEST
+    OLDEST
+}
+
+type User {
+    id: ID!
+    username: String!
+}
+type Post {
+    id: ID!
+    title: String!
+    body: String!
+    author: User!
+    commentsEnabled: Boolean!
+    comments(
+        first: Int = 20
+        after: String
+        order: CommentOrder = NEWEST
+    ): CommentConnection!
+}
+
+type Comment {
+    id: ID!
+    postId: ID!
+    post: Post!
+    author: User!
+    body: String!
+    parentId: ID
+    depth: Int!
+    childrenCount: Int!
+    children(
+        first: Int = 20
+        after: String
+        order: CommentOrder = OLDEST
+    ): CommentConnection!
+}
+type CommentConnection {
+    edges: [CommentEdge!]!
+    pageInfo: PageInfo!
+    totalCount: Int!
+}
+type CommentEdge {
+    cursor: String!
+    node: Comment!
+}
+
+type PageInfo {
+    hasNextPage: Boolean!
+    endCursor: String
+}
+
+type PostConnection {
+    edges: [PostEdge!]!
+    pageInfo: PageInfo!
+    totalCount: Int!
+}
+
+type PostEdge {
+    cursor: String!
+    node: Post!
+}
+
+type Query {
+    posts(first: Int = 20, after: String): PostConnection!
+    post(id: ID!): Post
+}
+
+input CreatePostInput {
+    title: String!
+    body: String!
+    commentsEnabled: Boolean = true
+}
+
+input AddCommentInput {
+    postId: ID!
+    parentId: ID
+    body: String!
+}
+
+type Mutation {
+    createPost(input: CreatePostInput!): Post!
+    setCommentsEnabled(postId: ID!, enabled: Boolean!): Post!
+    addComment(input: AddCommentInput!): Comment!
+}
+
+type Subscription {
+    commentAdded(postId: ID!): Comment!
+}
