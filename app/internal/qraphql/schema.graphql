@@ -55,15 +55,27 @@ type PostConnection {
     pageInfo: PageInfo!
     totalCount: Int!
 }
-
 type PostEdge {
     cursor: String!
     node: Post!
 }
 
+
+type UserConnection {
+    edges: [UserEdge!]!
+    pageInfo: PageInfo!
+    totalCount: Int!
+}
+type UserEdge {
+    cursor: String!
+    node: User!
+}
+
 type Query {
-    posts(first: Int = 20, after: String): PostConnection!
-    post(id: ID!): Post
+    GetPosts(first: Int = 20, after: String): PostConnection!
+    GetPost(id: ID!): Post
+    GetUsers(first: Int = 20, after: String): UserConnection!
+    GetUser(id: ID!): User
 }
 
 input CreatePostInput {

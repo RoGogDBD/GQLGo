@@ -27,14 +27,35 @@ func (r *mutationResolver) AddComment(ctx context.Context, input models.AddComme
 	panic(fmt.Errorf("not implemented: AddComment - addComment"))
 }
 
-// Posts is the resolver for the posts field.
-func (r *queryResolver) Posts(ctx context.Context, first *int32, after *string) (*models.PostConnection, error) {
-	panic(fmt.Errorf("not implemented: Posts - posts"))
+// GetPosts is the resolver for the GetPosts field.
+func (r *queryResolver) GetPosts(ctx context.Context, first *int32, after *string) (*models.PostConnection, error) {
+	panic(fmt.Errorf("not implemented: GetPosts - GetPosts"))
 }
 
-// Post is the resolver for the post field.
-func (r *queryResolver) Post(ctx context.Context, id string) (*models.Post, error) {
-	panic(fmt.Errorf("not implemented: Post - post"))
+// GetPost is the resolver for the GetPost field.
+func (r *queryResolver) GetPost(ctx context.Context, id string) (*models.Post, error) {
+	panic(fmt.Errorf("not implemented: GetPost - GetPost"))
+}
+
+// GetUsers is the resolver for the GetUsers field.
+func (r *queryResolver) GetUsers(ctx context.Context, first *int32, after *string) (*models.UserConnection, error) {
+	edges := make([]*models.UserEdge, 0, len(data))
+	for _, u := range data {
+		edges = append(edges, &models.UserEdge{
+			Cursor: u.ID,
+			Node:   u,
+		})
+	}
+	return &models.UserConnection{
+		Edges:      edges,
+		PageInfo:   &models.PageInfo{HasNextPage: false, EndCursor: nil},
+		TotalCount: int32(len(edges)),
+	}, nil
+}
+
+// GetUser is the resolver for the GetUser field.
+func (r *queryResolver) GetUser(ctx context.Context, id string) (*models.User, error) {
+	panic(fmt.Errorf("not implemented: GetUser - GetUser"))
 }
 
 // CommentAdded is the resolver for the commentAdded field.
@@ -54,3 +75,35 @@ func (r *Resolver) Subscription() SubscriptionResolver { return &subscriptionRes
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type subscriptionResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+/*
+	func (r *queryResolver) Getposts(ctx context.Context, first *int32, after *string) (*models.PostConnection, error) {
+	panic(fmt.Errorf("not implemented: Getposts - getposts"))
+}
+func (r *queryResolver) Getpost(ctx context.Context, id string) (*models.Post, error) {
+	panic(fmt.Errorf("not implemented: Getpost - getpost"))
+}
+func (r *queryResolver) Getusers(ctx context.Context, first *int32, after *string) (*models.UserConnection, error) {
+	edges := make([]*models.UserEdge, 0, len(data))
+	for _, u := range data {
+		edges = append(edges, &models.UserEdge{
+			Cursor: u.ID,
+			Node:   u,
+		})
+	}
+	return &models.UserConnection{
+		Edges:      edges,
+		PageInfo:   &models.PageInfo{HasNextPage: false, EndCursor: nil},
+		TotalCount: int32(len(edges)),
+	}, nil
+}
+func (r *queryResolver) Getuser(ctx context.Context, id string) (*models.User, error) {
+	panic(fmt.Errorf("not implemented: Getuser - getuser"))
+}
+*/
