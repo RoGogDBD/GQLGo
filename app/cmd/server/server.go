@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -26,9 +27,14 @@ func main() {
 }
 
 func run() error {
-	storage, err := storage.NewPostgresStorage()
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		return fmt.Errorf("DATABASE_URL is not set")
+	}
+
+	storage, err := storage.NewDataStorage(dsn)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer storage.Close()
 
@@ -50,4 +56,6 @@ func run() error {
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", "8080")
 	log.Fatal(http.ListenAndServe("localhost:8080", nil))
+
+	return nil
 }

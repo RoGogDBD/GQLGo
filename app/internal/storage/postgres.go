@@ -35,6 +35,7 @@ func NewDataStorage(dsn string) (*DBStorage, error) {
 		return nil, fmt.Errorf("pgxpool config: %w", err)
 	}
 
+	// Конфиг.
 	cfg.MaxConns = maxOpenConns
 	cfg.MinConns = minIdleConns
 	cfg.MaxConnLifetime = connMaxLifetime
