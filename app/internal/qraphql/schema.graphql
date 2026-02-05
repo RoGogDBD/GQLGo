@@ -79,6 +79,7 @@ type Query {
 }
 
 input CreatePostInput {
+    authorId: ID!
     title: String!
     body: String!
     commentsEnabled: Boolean = true
@@ -86,6 +87,7 @@ input CreatePostInput {
 
 input AddCommentInput {
     postId: ID!
+    authorId: ID!
     parentId: ID
     body: String!
 }

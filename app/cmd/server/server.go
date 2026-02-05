@@ -19,8 +19,10 @@ const (
 )
 
 func main() {
+	// ===================== Логгер =====================
 	logger := log.New(os.Stdout, "", log.LstdFlags)
 
+	// ===================== Запуск сервера =====================
 	if err := run(logger); err != nil {
 		if !errors.Is(err, http.ErrServerClosed) {
 			log.Printf("error: %v", err)

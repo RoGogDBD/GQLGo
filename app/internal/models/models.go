@@ -2,6 +2,7 @@ package models
 
 type AddCommentInput struct {
 	PostID   string  `json:"postId"`
+	AuthorID string  `json:"authorId"`
 	ParentID *string `json:"parentId,omitempty"`
 	Body     string  `json:"body"`
 }
@@ -30,6 +31,7 @@ type CommentEdge struct {
 }
 
 type CreatePostInput struct {
+	AuthorID        string `json:"authorId"`
 	Title           string `json:"title"`
 	Body            string `json:"body"`
 	CommentsEnabled *bool  `json:"commentsEnabled,omitempty"`

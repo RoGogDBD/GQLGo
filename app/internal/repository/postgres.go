@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/RoGogDBD/GQLGo/internal/models"
+	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 )
 
@@ -99,4 +100,17 @@ func (r *PostgresPostRepo) GetByID(ctx context.Context, id string) (*models.Post
 		return nil, fmt.Errorf("получение поста: %w", err)
 	}
 	return p, nil
+}
+
+func (r *PostgresPostRepo) Create(ctx context.Context, in models.CreatePostInput) (*models.Post, error) {
+	p := new(models.Post)
+	p.ID = uuid.NewString()
+	p.Title = in.Title
+	p.Body = in.Body
+
+	commentsEnabled := true
+	if in.CommentsEnabled != nil {
+		commentsEnabled = *in.CommentsEnabled
+	}
+	p.CommentsEnabled = commentsEnabled
 }
