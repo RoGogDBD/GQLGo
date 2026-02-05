@@ -18,6 +18,7 @@ import (
 //}
 
 type Resolver struct {
-	UserRepo repository.UserRepo
-	PostRepo repository.PostRepo
+	UserRepo    repository.UserRepo
+	PostRepo    repository.PostRepo
+	CommentRepo repository.CommentRepo
 }

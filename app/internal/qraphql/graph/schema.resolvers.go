@@ -13,6 +13,12 @@ import (
 	"github.com/RoGogDBD/GQLGo/internal/utils/graph"
 )
 
+// Children is the resolver for the children field.
+func (r *commentResolver) Children(ctx context.Context, obj *models.Comment, first *int32, after *string, order *models.CommentOrder) (*models.CommentConnection, error) {
+	parentID := obj.ID
+	return graph.ResolveCommentConnection(ctx, r.CommentRepo, obj.PostID, &parentID, first, after, order, models.CommentOrderOldest)
+}
+
 // CreatePost is the resolver for the createPost field.
 func (r *mutationResolver) CreatePost(ctx context.Context, input models.CreatePostInput) (*models.Post, error) {
 	return r.PostRepo.Create(ctx, input)
@@ -26,6 +32,11 @@ func (r *mutationResolver) SetCommentsEnabled(ctx context.Context, postID string
 // AddComment is the resolver for the addComment field.
 func (r *mutationResolver) AddComment(ctx context.Context, input models.AddCommentInput) (*models.Comment, error) {
 	return nil, fmt.Errorf("not implemented: AddComment - addComment")
+}
+
+// Comments is the resolver for the comments field.
+func (r *postResolver) Comments(ctx context.Context, obj *models.Post, first *int32, after *string, order *models.CommentOrder) (*models.CommentConnection, error) {
+	return graph.ResolveCommentConnection(ctx, r.CommentRepo, obj.ID, nil, first, after, order, models.CommentOrderNewest)
 }
 
 // GetPosts is the resolver for the GetPosts field.
@@ -69,8 +80,14 @@ func (r *subscriptionResolver) CommentAdded(ctx context.Context, postID string) 
 	return nil, fmt.Errorf("not implemented: CommentAdded - commentAdded")
 }
 
+// Comment returns CommentResolver implementation.
+func (r *Resolver) Comment() CommentResolver { return &commentResolver{r} }
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
+
+// Post returns PostResolver implementation.
+func (r *Resolver) Post() PostResolver { return &postResolver{r} }
 
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
@@ -78,6 +95,8 @@ func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 // Subscription returns SubscriptionResolver implementation.
 func (r *Resolver) Subscription() SubscriptionResolver { return &subscriptionResolver{r} }
 
+type commentResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
+type postResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type subscriptionResolver struct{ *Resolver }

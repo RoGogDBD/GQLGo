@@ -23,4 +23,4 @@ func (c Config) Validate() error {
 	return errors.Join(errs...)
 }
 
-// TODO: Можно добавить более строгую валидацию параметров.
+// TODO: Добавить более строгую валидацию параметров.

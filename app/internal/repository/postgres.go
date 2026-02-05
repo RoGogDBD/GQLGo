@@ -313,57 +313,70 @@ func (r *PostgresCommentRepo) Create(ctx context.Context, postID, authorID strin
 	}, nil
 }
 
-// ListByParent возвращает комментарии по посту и/или родителю с пагинацией.
 func (r *PostgresCommentRepo) ListByParent(ctx context.Context, postID string, parentID *string, first int32, after *string, order models.CommentOrder) ([]*models.Comment, *string, error) {
+	if postID == "" {
+		return nil, nil, fmt.Errorf("требуется id поста")
+	}
 	if first <= 0 {
 		first = defaultPageSize
+	}
+	if !order.IsValid() {
+		order = models.CommentOrderNewest
 	}
 
 	comments := make([]*models.Comment, 0, first)
 
 	query := r.db.NewSelect().
 		TableExpr("comments AS c").
-		Column("c.id", "c.post_id", "c.body", "c.parent_id", "c.depth", "c.children_count", "c.created_at").
+		Column(
+			"c.id",
+			"c.post_id",
+			"c.parent_id",
+			"c.body",
+			"c.depth",
+			"c.children_count",
+			"c.created_at",
+		).
 		ColumnExpr("u.id AS author__id, u.username AS author__username").
 		Join("JOIN users AS u ON u.id = c.author_id").
+		Where("c.post_id = ?", postID).
 		Limit(int(first))
 
-	if parentID == nil {
-		query = query.Where("c.post_id = ?", postID).Where("c.parent_id IS NULL")
+	if parentID == nil || *parentID == "" {
+		query.Where("c.parent_id IS NULL")
 	} else {
-		query = query.Where("c.parent_id = ?", *parentID)
+		query.Where("c.parent_id = ?", *parentID)
 	}
 
-	orderDir := "DESC"
-	if order == models.CommentOrderOldest {
-		orderDir = "ASC"
-	}
-	query = query.Order(fmt.Sprintf("c.created_at %s, c.id %s", orderDir, orderDir))
-
-	// Курсор: created_at|id
 	if after != nil && *after != "" {
-		parts := strings.SplitN(*after, "|", 2)
-		if len(parts) == 2 {
-			if t, err := time.Parse(time.RFC3339Nano, parts[0]); err == nil {
-				if orderDir == "ASC" {
-					query = query.Where("(c.created_at, c.id) > (?, ?)", t, parts[1])
-				} else {
-					query = query.Where("(c.created_at, c.id) < (?, ?)", t, parts[1])
-				}
-			}
+		switch order {
+		case models.CommentOrderNewest:
+			query.Where("(c.created_at, c.id) < (SELECT created_at, id FROM comments WHERE id = ?)", *after)
+		case models.CommentOrderOldest:
+			query.Where("(c.created_at, c.id) > (SELECT created_at, id FROM comments WHERE id = ?)", *after)
 		}
+	}
+
+	switch order {
+	case models.CommentOrderNewest:
+		query.Order("c.created_at DESC", "c.id DESC")
+	case models.CommentOrderOldest:
+		query.Order("c.created_at ASC", "c.id ASC")
 	}
 
 	if err := query.Scan(ctx, &comments); err != nil {
 		return nil, nil, fmt.Errorf("список комментариев: %w", err)
 	}
 
-	var endCursor *string
-	if len(comments) > 0 {
-		last := comments[len(comments)-1]
-		cursor := fmt.Sprintf("%s|%s", last.CreatedAt.Format(time.RFC3339Nano), last.ID)
-		endCursor = &cursor
+	for _, c := range comments {
+		if c.Children == nil {
+			c.Children = &models.CommentConnection{
+				Edges:      []*models.CommentEdge{},
+				PageInfo:   &models.PageInfo{HasNextPage: false, EndCursor: nil},
+				TotalCount: 0,
+			}
+		}
 	}
 
-	return comments, endCursor, nil
+	return comments, repository.LastID(comments, func(c *models.Comment) string { return c.ID }), nil
 }

@@ -3,6 +3,11 @@ enum CommentOrder {
     OLDEST
 }
 
+directive @goField(
+    forceResolver: Boolean
+    name: String
+) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
+
 type User {
     id: ID!
     username: String!
@@ -17,7 +22,7 @@ type Post {
         first: Int = 20
         after: String
         order: CommentOrder = NEWEST
-    ): CommentConnection!
+    ): CommentConnection! @goField(forceResolver: true)
 }
 
 type Comment {
@@ -33,7 +38,7 @@ type Comment {
         first: Int = 20
         after: String
         order: CommentOrder = OLDEST
-    ): CommentConnection!
+    ): CommentConnection! @goField(forceResolver: true)
 }
 type CommentConnection {
     edges: [CommentEdge!]!
