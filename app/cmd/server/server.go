@@ -13,6 +13,11 @@ import (
 	"github.com/RoGogDBD/GQLGo/internal/storage"
 )
 
+const (
+	msgNoDSNConfig  = "config error: отсутствует DSN"
+	msgNoAddrConfig = "config error: отсутствует ADDR"
+)
+
 func main() {
 	logger := log.New(os.Stdout, "", log.LstdFlags)
 
@@ -25,23 +30,24 @@ func main() {
 }
 
 func run(logger *log.Logger) error {
-	// Загрузка конфига.
-	cfg := config.LoadFromEnv()
-	if err := cfg.Validate(); err != nil {
+	// ===================== Кофигурация =====================
+	cfg, err := config.Load()
+	if err != nil {
+		if errors.Is(err, config.ErrNoDSN) {
+			logger.Printf(msgNoDSNConfig)
+		}
+		if errors.Is(err, config.ErrNoAddress) {
+			logger.Printf(msgNoAddrConfig)
+		}
 		return err
 	}
 
-	// Подключение к БД.
+	// ===================== Хранилище =====================
 	st, err := storage.NewDataStorage(cfg.DB.DSN)
 	if err != nil {
 		return err
 	}
-	defer func(st *storage.DBStorage) {
-		err := st.Close()
-		if err != nil {
-			logger.Printf("close DB: %v", err)
-		}
-	}(st)
+	defer st.Close()
 
 	userRepo, err := repository.NewPostgresUserRepo(st.DB())
 	if err != nil {

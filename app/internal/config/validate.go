@@ -1,16 +1,26 @@
 package config
 
-import "fmt"
+import (
+	"errors"
+)
 
-// Validate проверяет на наличие значений.
+var (
+	ErrNoDSN     = errors.New("dsn не установлен")
+	ErrNoAddress = errors.New("addr не установлен")
+)
+
+// Validate проверяет на параметры кофига.
 func (c Config) Validate() error {
+	var errs []error
+
 	if c.DB.DSN == "" {
-		return fmt.Errorf("DB.DSN отсутсвует")
+		errs = append(errs, ErrNoDSN)
 	}
 	if c.Server.Addr == "" {
-		return fmt.Errorf("SERVER.ADDR отсутсвует")
+		errs = append(errs, ErrNoAddress)
 	}
-	return nil
+
+	return errors.Join(errs...)
 }
 
 // TODO: Можно добавить более строгую валидацию параметров.

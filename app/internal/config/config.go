@@ -1,6 +1,9 @@
 package config
 
-import "os"
+import (
+	"fmt"
+	"os"
+)
 
 type Config struct {
 	Server ServerConfig
@@ -20,6 +23,7 @@ type (
 	// TODO: Другие шняги JWT и т.д.
 )
 
+// LoadFromEnv подгрузка из env.
 func LoadFromEnv() Config {
 	cfg := Config{
 		Server: ServerConfig{
@@ -35,4 +39,13 @@ func LoadFromEnv() Config {
 	}
 
 	return cfg
+}
+
+// Load конфиг из env и валидация.
+func Load() (Config, error) {
+	cfg := LoadFromEnv()
+	if err := cfg.Validate(); err != nil {
+		return Config{}, fmt.Errorf("загрузка конфига env: %w", err)
+	}
+	return cfg, nil
 }
