@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	"github.com/RoGogDBD/GQLGo/internal/models"
+	"github.com/RoGogDBD/GQLGo/internal/utils/graph"
 )
 
 // CreatePost is the resolver for the createPost field.
@@ -37,18 +38,7 @@ func (r *queryResolver) GetPosts(ctx context.Context, first *int32, after *strin
 	if err != nil {
 		return nil, err
 	}
-	edges := make([]*models.PostEdge, 0, len(list))
-	for _, p := range list {
-		edges = append(edges, &models.PostEdge{
-			Cursor: p.ID,
-			Node:   p,
-		})
-	}
-	return &models.PostConnection{
-		Edges:      edges,
-		PageInfo:   &models.PageInfo{HasNextPage: false, EndCursor: endCursor},
-		TotalCount: int32(len(edges)),
-	}, nil
+	return graph.NewPostConnection(list, endCursor), nil
 }
 
 // GetPost is the resolver for the GetPost field.
@@ -66,18 +56,7 @@ func (r *queryResolver) GetUsers(ctx context.Context, first *int32, after *strin
 	if err != nil {
 		return nil, err
 	}
-	edges := make([]*models.UserEdge, 0, len(list))
-	for _, u := range list {
-		edges = append(edges, &models.UserEdge{
-			Cursor: u.ID,
-			Node:   u,
-		})
-	}
-	return &models.UserConnection{
-		Edges:      edges,
-		PageInfo:   &models.PageInfo{HasNextPage: false, EndCursor: endCursor},
-		TotalCount: int32(len(edges)),
-	}, nil
+	return graph.NewUserConnection(list, endCursor), nil
 }
 
 // GetUser is the resolver for the GetUser field.

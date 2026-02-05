@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 type AddCommentInput struct {
 	PostID   string  `json:"postId"`
 	AuthorID string  `json:"authorId"`
@@ -17,6 +19,7 @@ type Comment struct {
 	Depth         int32              `json:"depth"`
 	ChildrenCount int32              `json:"childrenCount"`
 	Children      *CommentConnection `json:"children"`
+	CreatedAt     time.Time          `json:"-"`
 }
 
 type CommentConnection struct {
