@@ -2,26 +2,30 @@ package storage
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
 	"github.com/RoGogDBD/GQLGo/internal/config/migrate"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/dialect/pgdialect"
+	"github.com/uptrace/bun/driver/pgdriver"
 )
 
-// Параметры для подключения к бд.
+// Параметры для конфигурации к бд.
 const (
 	contextTimeout  = 5 * time.Second
 	connMaxLifetime = 5 * time.Minute
 	connMaxIdleTime = 5 * time.Minute
 
 	maxOpenConns = 25
-	minIdleConns = 10
+	maxIdleConns = 10
 )
 
 // DBStorage хранилище данных с подключением к БД.
 type DBStorage struct {
-	pool *pgxpool.Pool
+	sqldb *sql.DB
+	db    *bun.DB
 }
 
 // NewDataStorage создает новое подключение к БД.
@@ -30,35 +34,36 @@ func NewDataStorage(dsn string) (*DBStorage, error) {
 		return nil, fmt.Errorf("run migrations: %w", err)
 	}
 
-	cfg, err := pgxpool.ParseConfig(dsn)
-	if err != nil {
-		return nil, fmt.Errorf("pgxpool config: %w", err)
-	}
+	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
 
 	// Конфиг.
-	cfg.MaxConns = maxOpenConns
-	cfg.MinConns = minIdleConns
-	cfg.MaxConnLifetime = connMaxLifetime
-	cfg.MaxConnIdleTime = connMaxIdleTime
+	sqldb.SetMaxOpenConns(maxOpenConns)
+	sqldb.SetMaxIdleConns(maxIdleConns)
+	sqldb.SetConnMaxLifetime(connMaxLifetime)
+	sqldb.SetConnMaxIdleTime(connMaxIdleTime)
 
 	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
 	defer cancel()
 
-	pool, err := pgxpool.NewWithConfig(ctx, cfg)
-	if err != nil {
-		return nil, fmt.Errorf("pgxpool open: %w", err)
-	}
-
-	if err := pool.Ping(ctx); err != nil {
-		pool.Close()
+	if err := sqldb.PingContext(ctx); err != nil {
+		_ = sqldb.Close()
 		return nil, fmt.Errorf("db ping: %w", err)
 	}
 
-	return &DBStorage{pool: pool}, nil
+	db := bun.NewDB(sqldb, pgdialect.New())
+
+	return &DBStorage{
+		sqldb: sqldb,
+		db:    db,
+	}, nil
 }
 
 // Close закрывает соединение с БД.
 func (s *DBStorage) Close() error {
-	s.pool.Close()
-	return nil
+	return s.sqldb.Close()
+}
+
+// DB возвращает объект БД.
+func (s *DBStorage) DB() *bun.DB {
+	return s.db
 }

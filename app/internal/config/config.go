@@ -8,7 +8,7 @@ type Config struct {
 }
 
 type (
-	// ServerConfig конфиг старта серва.
+	// ServerConfig конфиг серва.
 	ServerConfig struct {
 		Addr string
 	}
@@ -17,7 +17,7 @@ type (
 		DSN string
 	}
 
-	// TODO: Другие щняги JWT и т.д.
+	// TODO: Другие шняги JWT и т.д.
 )
 
 func LoadFromEnv() Config {

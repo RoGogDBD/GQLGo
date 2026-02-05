@@ -8,6 +8,8 @@ import (
 
 	"github.com/RoGogDBD/GQLGo/internal/config"
 	"github.com/RoGogDBD/GQLGo/internal/handler"
+	"github.com/RoGogDBD/GQLGo/internal/qraphql/graph"
+	"github.com/RoGogDBD/GQLGo/internal/repository"
 	"github.com/RoGogDBD/GQLGo/internal/storage"
 )
 
@@ -41,7 +43,20 @@ func run(logger *log.Logger) error {
 		}
 	}(st)
 
-	router := handler.NewRouter()
+	userRepo, err := repository.NewPostgresUserRepo(st.DB())
+	if err != nil {
+		return err
+	}
+	postRepo, err := repository.NewPostgresPostRepo(st.DB())
+	if err != nil {
+		return err
+	}
+	resolver := &graph.Resolver{
+		UserRepo: userRepo,
+		PostRepo: postRepo,
+	}
+
+	router := handler.NewRouter(resolver)
 	logger.Printf("connect to %s for GraphQL playground", cfg.Server.Addr)
 	return router.Run(cfg.Server.Addr)
 }

@@ -14,33 +14,60 @@ import (
 
 // CreatePost is the resolver for the createPost field.
 func (r *mutationResolver) CreatePost(ctx context.Context, input models.CreatePostInput) (*models.Post, error) {
-	panic(fmt.Errorf("not implemented: CreatePost - createPost"))
+	return r.PostRepo.Create(ctx, input)
 }
 
 // SetCommentsEnabled is the resolver for the setCommentsEnabled field.
 func (r *mutationResolver) SetCommentsEnabled(ctx context.Context, postID string, enabled bool) (*models.Post, error) {
-	panic(fmt.Errorf("not implemented: SetCommentsEnabled - setCommentsEnabled"))
+	return r.PostRepo.SetCommentsEnabled(ctx, postID, enabled)
 }
 
 // AddComment is the resolver for the addComment field.
 func (r *mutationResolver) AddComment(ctx context.Context, input models.AddCommentInput) (*models.Comment, error) {
-	panic(fmt.Errorf("not implemented: AddComment - addComment"))
+	return nil, fmt.Errorf("not implemented: AddComment - addComment")
 }
 
 // GetPosts is the resolver for the GetPosts field.
 func (r *queryResolver) GetPosts(ctx context.Context, first *int32, after *string) (*models.PostConnection, error) {
-	panic(fmt.Errorf("not implemented: GetPosts - GetPosts"))
+	f := int32(20)
+	if first != nil {
+		f = *first
+	}
+	list, endCursor, err := r.PostRepo.List(ctx, f, after)
+	if err != nil {
+		return nil, err
+	}
+	edges := make([]*models.PostEdge, 0, len(list))
+	for _, p := range list {
+		edges = append(edges, &models.PostEdge{
+			Cursor: p.ID,
+			Node:   p,
+		})
+	}
+	return &models.PostConnection{
+		Edges:      edges,
+		PageInfo:   &models.PageInfo{HasNextPage: false, EndCursor: endCursor},
+		TotalCount: int32(len(edges)),
+	}, nil
 }
 
 // GetPost is the resolver for the GetPost field.
 func (r *queryResolver) GetPost(ctx context.Context, id string) (*models.Post, error) {
-	panic(fmt.Errorf("not implemented: GetPost - GetPost"))
+	return r.PostRepo.GetByID(ctx, id)
 }
 
 // GetUsers is the resolver for the GetUsers field.
 func (r *queryResolver) GetUsers(ctx context.Context, first *int32, after *string) (*models.UserConnection, error) {
-	edges := make([]*models.UserEdge, 0, len(data))
-	for _, u := range data {
+	f := int32(20)
+	if first != nil {
+		f = *first
+	}
+	list, endCursor, err := r.UserRepo.List(ctx, f, after)
+	if err != nil {
+		return nil, err
+	}
+	edges := make([]*models.UserEdge, 0, len(list))
+	for _, u := range list {
 		edges = append(edges, &models.UserEdge{
 			Cursor: u.ID,
 			Node:   u,
@@ -48,19 +75,19 @@ func (r *queryResolver) GetUsers(ctx context.Context, first *int32, after *strin
 	}
 	return &models.UserConnection{
 		Edges:      edges,
-		PageInfo:   &models.PageInfo{HasNextPage: false, EndCursor: nil},
+		PageInfo:   &models.PageInfo{HasNextPage: false, EndCursor: endCursor},
 		TotalCount: int32(len(edges)),
 	}, nil
 }
 
 // GetUser is the resolver for the GetUser field.
 func (r *queryResolver) GetUser(ctx context.Context, id string) (*models.User, error) {
-	panic(fmt.Errorf("not implemented: GetUser - GetUser"))
+	return r.UserRepo.GetByID(ctx, id)
 }
 
 // CommentAdded is the resolver for the commentAdded field.
 func (r *subscriptionResolver) CommentAdded(ctx context.Context, postID string) (<-chan *models.Comment, error) {
-	panic(fmt.Errorf("not implemented: CommentAdded - commentAdded"))
+	return nil, fmt.Errorf("not implemented: CommentAdded - commentAdded")
 }
 
 // Mutation returns MutationResolver implementation.
