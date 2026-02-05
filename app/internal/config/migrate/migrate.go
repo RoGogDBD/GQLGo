@@ -11,7 +11,7 @@ import (
 
 const migrationsPath = "file://./migrations"
 
-// RunMigrations применяет миграции из папки migrations.
+// RunMigrations запуск миграций из папки migrations.
 func RunMigrations(dsn string) error {
 	m, err := migrate.New(migrationsPath, dsn)
 	if err != nil {

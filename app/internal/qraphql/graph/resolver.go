@@ -8,6 +8,7 @@ import "github.com/RoGogDBD/GQLGo/internal/models"
 // It serves as dependency injection for your app, add any dependencies you require
 // here.
 
+// Test data.
 var data = []*models.User{
 	{ID: "1", Username: "Vasa"},
 	{ID: "2", Username: "Petya"},

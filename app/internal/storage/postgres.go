@@ -15,8 +15,8 @@ const (
 	connMaxLifetime = 5 * time.Minute
 	connMaxIdleTime = 5 * time.Minute
 
-	maxOpenConns int32 = 25
-	minIdleConns int32 = 10
+	maxOpenConns = 25
+	minIdleConns = 10
 )
 
 // DBStorage хранилище данных с подключением к БД.
