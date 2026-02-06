@@ -1,9 +1,13 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/RoGogDBD/GQLGo/internal/config"
 	"github.com/RoGogDBD/GQLGo/internal/handler"
@@ -97,5 +101,35 @@ func run(logger service.Logger) error {
 
 	router := handler.NewRouter(resolver)
 	logger.Infof("connect to %s for GraphQL playground", cfg.Server.Addr)
-	return router.Run(cfg.Server.Addr)
+
+	srv := &http.Server{
+		Addr:    cfg.Server.Addr,
+		Handler: router,
+	}
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- srv.ListenAndServe()
+	}()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	defer signal.Stop(stop)
+
+	select {
+	case err := <-errCh:
+		return err
+	case <-stop:
+		logger.Infof("shutdown signal received")
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(ctx); err != nil {
+			return err
+		}
+		err := <-errCh
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return err
+		}
+		return nil
+	}
 }

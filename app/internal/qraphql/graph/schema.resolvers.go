@@ -86,11 +86,16 @@ func (r *queryResolver) GetPosts(ctx context.Context, first *int32, after *strin
 	if first != nil {
 		f = *first
 	}
-	list, endCursor, err := r.PostRepo.List(ctx, f, after)
+	// проверка кол элементов.
+	list, _, err := r.PostRepo.List(ctx, f+1, after)
 	if err != nil {
 		return nil, err
 	}
-	return graph.NewPostConnection(list, endCursor), nil
+	hasNext := int32(len(list)) > f
+	if hasNext {
+		list = list[:f]
+	}
+	return graph.NewPostConnection(list, hasNext), nil
 }
 
 // GetPost is the resolver for the GetPost field.
@@ -104,11 +109,16 @@ func (r *queryResolver) GetUsers(ctx context.Context, first *int32, after *strin
 	if first != nil {
 		f = *first
 	}
-	list, endCursor, err := r.UserRepo.List(ctx, f, after)
+	// проверка кол элементов.
+	list, _, err := r.UserRepo.List(ctx, f+1, after)
 	if err != nil {
 		return nil, err
 	}
-	return graph.NewUserConnection(list, endCursor), nil
+	hasNext := int32(len(list)) > f
+	if hasNext {
+		list = list[:f]
+	}
+	return graph.NewUserConnection(list, hasNext), nil
 }
 
 // GetUser is the resolver for the GetUser field.

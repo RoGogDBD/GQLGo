@@ -332,6 +332,7 @@ func (r *PostgresCommentRepo) ListByParent(ctx context.Context, postID string, p
 			query.Where("(c.created_at, c.id) < (SELECT created_at, id FROM comments WHERE id = ?)", *after)
 		case models.CommentOrderOldest:
 			query.Where("(c.created_at, c.id) > (SELECT created_at, id FROM comments WHERE id = ?)", *after)
+		default:
 		}
 	}
 
@@ -340,6 +341,8 @@ func (r *PostgresCommentRepo) ListByParent(ctx context.Context, postID string, p
 		query.Order("c.created_at DESC", "c.id DESC")
 	case models.CommentOrderOldest:
 		query.Order("c.created_at ASC", "c.id ASC")
+	default:
+		// no-op
 	}
 
 	if err := query.Scan(ctx, &comments); err != nil {

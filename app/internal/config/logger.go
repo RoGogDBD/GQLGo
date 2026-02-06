@@ -14,7 +14,6 @@ func (l Logger) Infof(format string, args ...any)  { l.SugaredLogger.Infof(forma
 func (l Logger) Warnf(format string, args ...any)  { l.SugaredLogger.Warnf(format, args...) }
 func (l Logger) Errorf(format string, args ...any) { l.SugaredLogger.Errorf(format, args...) }
 
-// NewLogger инициализация.
 func NewLogger() (service.Logger, func(), error) {
 	zapLogger, err := zap.NewDevelopment()
 	if err != nil {

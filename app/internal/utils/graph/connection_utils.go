@@ -20,7 +20,7 @@ type (
 )
 
 // NewPostConnection создает объект PostConnection.
-func NewPostConnection(list []*models.Post, endCursor *string) *models.PostConnection {
+func NewPostConnection(list []*models.Post, hasNext bool) *models.PostConnection {
 	edges := make([]*models.PostEdge, 0, len(list))
 	for _, p := range list {
 		edges = append(edges, &models.PostEdge{
@@ -28,15 +28,21 @@ func NewPostConnection(list []*models.Post, endCursor *string) *models.PostConne
 			Node:   p,
 		})
 	}
+
+	var endCursor *string
+	if len(list) > 0 {
+		id := list[len(list)-1].ID
+		endCursor = &id
+	}
 	return &models.PostConnection{
 		Edges:      edges,
-		PageInfo:   &models.PageInfo{HasNextPage: false, EndCursor: endCursor},
+		PageInfo:   &models.PageInfo{HasNextPage: hasNext, EndCursor: endCursor},
 		TotalCount: int32(len(edges)),
 	}
 }
 
 // NewUserConnection создает объект UserConnection.
-func NewUserConnection(list []*models.User, endCursor *string) *models.UserConnection {
+func NewUserConnection(list []*models.User, hasNext bool) *models.UserConnection {
 	edges := make([]*models.UserEdge, 0, len(list))
 	for _, u := range list {
 		edges = append(edges, &models.UserEdge{
@@ -44,15 +50,20 @@ func NewUserConnection(list []*models.User, endCursor *string) *models.UserConne
 			Node:   u,
 		})
 	}
+	var endCursor *string
+	if len(list) > 0 {
+		id := list[len(list)-1].ID
+		endCursor = &id
+	}
 	return &models.UserConnection{
 		Edges:      edges,
-		PageInfo:   &models.PageInfo{HasNextPage: false, EndCursor: endCursor},
+		PageInfo:   &models.PageInfo{HasNextPage: hasNext, EndCursor: endCursor},
 		TotalCount: int32(len(edges)),
 	}
 }
 
 // NewCommentConnection создает CommentConnection.
-func NewCommentConnection(list []*models.Comment, endCursor *string) *models.CommentConnection {
+func NewCommentConnection(list []*models.Comment, hasNext bool) *models.CommentConnection {
 	edges := make([]*models.CommentEdge, 0, len(list))
 	for _, c := range list {
 		edges = append(edges, &models.CommentEdge{
@@ -60,9 +71,14 @@ func NewCommentConnection(list []*models.Comment, endCursor *string) *models.Com
 			Node:   c,
 		})
 	}
+	var endCursor *string
+	if len(list) > 0 {
+		id := list[len(list)-1].ID
+		endCursor = &id
+	}
 	return &models.CommentConnection{
 		Edges:      edges,
-		PageInfo:   &models.PageInfo{HasNextPage: false, EndCursor: endCursor},
+		PageInfo:   &models.PageInfo{HasNextPage: hasNext, EndCursor: endCursor},
 		TotalCount: int32(len(edges)),
 	}
 }
@@ -78,11 +94,15 @@ func ResolveCommentConnection(ctx context.Context, repo CommentLister, postID st
 		ord = *order
 	}
 
-	list, endCursor, err := repo.ListByParent(ctx, postID, parentID, f, after, ord)
+	list, _, err := repo.ListByParent(ctx, postID, parentID, f+1, after, ord)
 	if err != nil {
 		return nil, err
 	}
-	return NewCommentConnection(list, endCursor), nil
+	hasNext := int32(len(list)) > f
+	if hasNext {
+		list = list[:f]
+	}
+	return NewCommentConnection(list, hasNext), nil
 }
 
 // ResolveCommentDepth глубина нового комментария, относительно родителя.
