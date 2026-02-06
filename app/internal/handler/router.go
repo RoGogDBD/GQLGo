@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"time"
+
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
@@ -15,6 +17,9 @@ func NewRouter(resolver *graph.Resolver) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
+	srv.AddTransport(transport.Websocket{
+		KeepAlivePingInterval: 10 * time.Second,
+	})
 	srv.AddTransport(transport.GET{})
 	srv.AddTransport(transport.POST{})
 	srv.SetQueryCache(lru.New[*ast.QueryDocument](1000))

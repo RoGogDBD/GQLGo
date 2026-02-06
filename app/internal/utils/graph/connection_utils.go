@@ -2,14 +2,22 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/RoGogDBD/GQLGo/internal/models"
 )
 
-// CommentLister минимальный контракт для получения комментариев.
-type CommentLister interface {
-	ListByParent(ctx context.Context, postID string, parentID *string, first int32, after *string, order models.CommentOrder) ([]*models.Comment, *string, error)
-}
+type (
+	// CommentLister получение комментариев.
+	CommentLister interface {
+		ListByParent(ctx context.Context, postID string, parentID *string, first int32, after *string, order models.CommentOrder) ([]*models.Comment, *string, error)
+	}
+
+	// CommentMetaGetter получение мета-данных комментария.
+	CommentMetaGetter interface {
+		GetMeta(ctx context.Context, id string) (string, int, error)
+	}
+)
 
 // NewPostConnection создает объект PostConnection.
 func NewPostConnection(list []*models.Post, endCursor *string) *models.PostConnection {
@@ -75,4 +83,20 @@ func ResolveCommentConnection(ctx context.Context, repo CommentLister, postID st
 		return nil, err
 	}
 	return NewCommentConnection(list, endCursor), nil
+}
+
+// ResolveCommentDepth глубина нового комментария, относительно родителя.
+func ResolveCommentDepth(ctx context.Context, repo CommentMetaGetter, postID string, parentID *string) (int, error) {
+	if parentID == nil || *parentID == "" {
+		return 0, nil
+	}
+
+	parentPostID, parentDepth, err := repo.GetMeta(ctx, *parentID)
+	if err != nil {
+		return 0, err
+	}
+	if parentPostID != postID {
+		return 0, fmt.Errorf("родитель из другого поста")
+	}
+	return parentDepth + 1, nil
 }

@@ -4,6 +4,7 @@ package graph
 
 import (
 	"github.com/RoGogDBD/GQLGo/internal/repository"
+	"github.com/RoGogDBD/GQLGo/internal/service"
 )
 
 // This file will not be regenerated automatically.
@@ -18,7 +19,8 @@ import (
 //}
 
 type Resolver struct {
-	UserRepo    repository.UserRepo
-	PostRepo    repository.PostRepo
-	CommentRepo repository.CommentRepo
+	UserRepo        repository.UserRepo
+	PostRepo        repository.PostRepo
+	CommentRepo     repository.CommentRepo
+	CommentNotifier *service.CommentNotifier
 }

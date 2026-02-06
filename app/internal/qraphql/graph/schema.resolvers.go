@@ -8,6 +8,7 @@ package graph
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/RoGogDBD/GQLGo/internal/models"
 	"github.com/RoGogDBD/GQLGo/internal/utils/graph"
@@ -31,7 +32,45 @@ func (r *mutationResolver) SetCommentsEnabled(ctx context.Context, postID string
 
 // AddComment is the resolver for the addComment field.
 func (r *mutationResolver) AddComment(ctx context.Context, input models.AddCommentInput) (*models.Comment, error) {
-	return nil, fmt.Errorf("not implemented: AddComment - addComment")
+	if input.PostID == "" {
+		return nil, fmt.Errorf("требуется id поста")
+	}
+	if input.AuthorID == "" {
+		return nil, fmt.Errorf("требуется id автора")
+	}
+
+	body := strings.TrimSpace(input.Body)
+	if body == "" {
+		return nil, fmt.Errorf("требуется тело коммента")
+	}
+	if len(body) > 2000 {
+		return nil, fmt.Errorf("тело комментария длинное (<= 2000)")
+	}
+
+	post, err := r.PostRepo.GetByID(ctx, input.PostID)
+	if err != nil {
+		return nil, err
+	}
+	if post == nil {
+		return nil, fmt.Errorf("пост не найден")
+	}
+	if !post.CommentsEnabled {
+		return nil, fmt.Errorf("комментарии отключены")
+	}
+
+	depth, err := graph.ResolveCommentDepth(ctx, r.CommentRepo, input.PostID, input.ParentID)
+	if err != nil {
+		return nil, err
+	}
+
+	comment, err := r.CommentRepo.Create(ctx, input.PostID, input.AuthorID, input.ParentID, body, depth)
+	if err != nil {
+		return nil, err
+	}
+	if r.CommentNotifier != nil {
+		r.CommentNotifier.Publish(input.PostID, comment)
+	}
+	return comment, nil
 }
 
 // Comments is the resolver for the comments field.
@@ -77,7 +116,21 @@ func (r *queryResolver) GetUser(ctx context.Context, id string) (*models.User, e
 
 // CommentAdded is the resolver for the commentAdded field.
 func (r *subscriptionResolver) CommentAdded(ctx context.Context, postID string) (<-chan *models.Comment, error) {
-	return nil, fmt.Errorf("not implemented: CommentAdded - commentAdded")
+	if postID == "" {
+		return nil, fmt.Errorf("требуется id поста")
+	}
+	if r.CommentNotifier == nil {
+		return nil, fmt.Errorf("subscriptions отключены")
+	}
+
+	ch, unsubscribe := r.CommentNotifier.Subscribe(postID)
+
+	go func() {
+		<-ctx.Done()
+		unsubscribe()
+	}()
+
+	return ch, nil
 }
 
 // Comment returns CommentResolver implementation.

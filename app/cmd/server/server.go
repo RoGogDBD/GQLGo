@@ -5,11 +5,13 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/RoGogDBD/GQLGo/internal/config"
 	"github.com/RoGogDBD/GQLGo/internal/handler"
 	"github.com/RoGogDBD/GQLGo/internal/qraphql/graph"
 	"github.com/RoGogDBD/GQLGo/internal/repository"
+	"github.com/RoGogDBD/GQLGo/internal/service"
 	"github.com/RoGogDBD/GQLGo/internal/storage"
 )
 
@@ -59,9 +61,15 @@ func run(logger *log.Logger) error {
 	if err != nil {
 		return err
 	}
+	commentRepo, err := repository.NewPostgresCommentRepo(st.DB())
+	if err != nil {
+		return err
+	}
 	resolver := &graph.Resolver{
-		UserRepo: userRepo,
-		PostRepo: postRepo,
+		UserRepo:        userRepo,
+		PostRepo:        postRepo,
+		CommentRepo:     commentRepo,
+		CommentNotifier: service.NewCommentNotifier(logger),
 	}
 
 	router := handler.NewRouter(resolver)
