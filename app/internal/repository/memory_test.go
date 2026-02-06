@@ -73,7 +73,7 @@ func TestMemoryCommentRepo_ListByParent(t *testing.T) {
 			st := NewMemoryStorageWithTTL(0)
 			repo := NewMemoryCommentRepo(st)
 
-			root, err := repo.Create(context.Background(), "p1", "u1", nil, "root", 0)
+			root, err := repo.Create(context.Background(), "p", "u", nil, "root", 0)
 			if err != nil {
 				t.Fatalf("при создании корневого комментария: %v", err)
 			}
@@ -84,12 +84,12 @@ func TestMemoryCommentRepo_ListByParent(t *testing.T) {
 			}
 
 			if tc.createChild {
-				if _, err := repo.Create(context.Background(), "p1", "u2", &root.ID, "child", 1); err != nil {
+				if _, err := repo.Create(context.Background(), "p", "u", &root.ID, "child", 1); err != nil {
 					t.Fatalf("при создании дочернего комментария: %v", err)
 				}
 			}
 
-			list, _, err := repo.ListByParent(context.Background(), "p1", parentID, 10, nil, models.CommentOrderNewest)
+			list, _, err := repo.ListByParent(context.Background(), "p", parentID, 10, nil, models.CommentOrderNewest)
 			if err != nil {
 				t.Fatalf("список комментариев: %v", err)
 			}
