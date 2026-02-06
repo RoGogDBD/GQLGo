@@ -6,16 +6,15 @@ import (
 )
 
 type Config struct {
-	Server ServerConfig
-	DB     DataBase
+	Server      ServerConfig
+	DB          DataBase
+	UsePostgres bool
 }
 
 type (
-	// ServerConfig конфиг серва.
 	ServerConfig struct {
 		Addr string
 	}
-	// DataBase конфиг бд.
 	DataBase struct {
 		DSN string
 	}
@@ -23,12 +22,12 @@ type (
 	// TODO: Другие шняги JWT и т.д.
 )
 
-// LoadFromEnv подгрузка из env.
 func LoadFromEnv() Config {
 	cfg := Config{
 		Server: ServerConfig{
 			Addr: "localhost:8080",
 		},
+		UsePostgres: false,
 	}
 
 	if v := os.Getenv("DSN"); v != "" {
@@ -36,6 +35,9 @@ func LoadFromEnv() Config {
 	}
 	if v := os.Getenv("ADDR"); v != "" {
 		cfg.Server.Addr = v
+	}
+	if v := os.Getenv("POSTGRES"); v != "" {
+		cfg.UsePostgres = v == "true" || v == "1" || v == "yes" || v == "y"
 	}
 
 	return cfg

@@ -25,3 +25,5 @@ type (
 		ListByParent(ctx context.Context, postID string, parentID *string, first int32, after *string, order models.CommentOrder) ([]*models.Comment, *string, error)
 	}
 )
+
+const DefaultPageSize = 10

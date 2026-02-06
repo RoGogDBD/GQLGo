@@ -50,25 +50,42 @@ func run(logger service.Logger) error {
 	}
 
 	// ===================== Хранилище =====================
-	st, err := storage.NewDataStorage(cfg.DB.DSN)
-	if err != nil {
-		return err
-	}
-	defer st.Close()
+	var (
+		userRepo    repository.UserRepo
+		postRepo    repository.PostRepo
+		commentRepo repository.CommentRepo
+		cleanup     func() error
+	)
 
-	userRepo, err := repository.NewPostgresUserRepo(st.DB())
-	if err != nil {
-		return err
+	switch cfg.UsePostgres {
+	case false:
+		st := repository.NewMemoryStorage()
+		userRepo = repository.NewMemoryUserRepo(st)
+		postRepo = repository.NewMemoryPostRepo(st)
+		commentRepo = repository.NewMemoryCommentRepo(st)
+		cleanup = func() error { return nil }
+	default:
+		st, err := storage.NewDataStorage(cfg.DB.DSN)
+		if err != nil {
+			return err
+		}
+		cleanup = st.Close
+		userRepo, err = repository.NewPostgresUserRepo(st.DB())
+		if err != nil {
+			return err
+		}
+		postRepo, err = repository.NewPostgresPostRepo(st.DB())
+		if err != nil {
+			return err
+		}
+		commentRepo, err = repository.NewPostgresCommentRepo(st.DB())
+		if err != nil {
+			return err
+		}
 	}
-	postRepo, err := repository.NewPostgresPostRepo(st.DB())
-	if err != nil {
-		return err
-	}
+	defer cleanup()
+
 	postService := service.NewPostService(postRepo)
-	commentRepo, err := repository.NewPostgresCommentRepo(st.DB())
-	if err != nil {
-		return err
-	}
 	resolver := &graph.Resolver{
 		UserRepo:        userRepo,
 		PostRepo:        postRepo,

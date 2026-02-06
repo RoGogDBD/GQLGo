@@ -12,7 +12,7 @@ import (
 	"github.com/uptrace/bun/driver/pgdriver"
 )
 
-// Параметры для конфигурации к бд.
+// Параметры для конфигурации бд.
 const (
 	contextTimeout  = 5 * time.Second
 	connMaxLifetime = 5 * time.Minute

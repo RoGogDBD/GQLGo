@@ -13,8 +13,6 @@ import (
 	"github.com/uptrace/bun"
 )
 
-const defaultPageSize = 10
-
 type (
 	PostgresUserRepo struct {
 		db *bun.DB
@@ -76,7 +74,7 @@ func (r *PostgresUserRepo) GetByID(ctx context.Context, id string) (*models.User
 // List возвращает список пользователй с пагинацией.
 func (r *PostgresUserRepo) List(ctx context.Context, first int32, after *string) ([]*models.User, *string, error) {
 	if first <= 0 {
-		first = defaultPageSize
+		first = DefaultPageSize
 	}
 
 	users := make([]*models.User, 0, first)
@@ -145,7 +143,7 @@ func (r *PostgresPostRepo) Create(ctx context.Context, in models.CreatePostInput
 // List возвращает список постов с пагинацией.
 func (r *PostgresPostRepo) List(ctx context.Context, first int32, after *string) ([]*models.Post, *string, error) {
 	if first <= 0 {
-		first = defaultPageSize
+		first = DefaultPageSize
 	}
 
 	posts := make([]*models.Post, 0, first)
@@ -298,7 +296,7 @@ func (r *PostgresCommentRepo) ListByParent(ctx context.Context, postID string, p
 		return nil, nil, fmt.Errorf("требуется id поста")
 	}
 	if first <= 0 {
-		first = defaultPageSize
+		first = DefaultPageSize
 	}
 	if !order.IsValid() {
 		order = models.CommentOrderNewest
