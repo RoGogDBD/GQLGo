@@ -42,11 +42,7 @@ docker compose down -v
 
 **API (GraphQL)**
 
-Endpoint:
-- `POST http://localhost:8080/query`
-- `POST http://localhost:8080/graphql` (алиас)
-
-Схема (кратко):
+Схема:
 - `Query`
   - `GetPosts(first: Int, after: String): PostConnection!`
   - `GetPost(id: ID!): Post`
