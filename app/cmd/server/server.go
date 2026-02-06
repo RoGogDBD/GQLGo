@@ -64,6 +64,7 @@ func run(logger service.Logger) error {
 	if err != nil {
 		return err
 	}
+	postService := service.NewPostService(postRepo)
 	commentRepo, err := repository.NewPostgresCommentRepo(st.DB())
 	if err != nil {
 		return err
@@ -74,6 +75,7 @@ func run(logger service.Logger) error {
 		CommentRepo:     commentRepo,
 		CommentNotifier: service.NewCommentNotifier(logger),
 		Logger:          logger,
+		PostService:     postService,
 	}
 
 	router := handler.NewRouter(resolver)

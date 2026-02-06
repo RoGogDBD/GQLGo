@@ -22,7 +22,7 @@ func (r *commentResolver) Children(ctx context.Context, obj *models.Comment, fir
 
 // CreatePost is the resolver for the createPost field.
 func (r *mutationResolver) CreatePost(ctx context.Context, input models.CreatePostInput) (*models.Post, error) {
-	return r.PostRepo.Create(ctx, input)
+	return r.PostService.Create(ctx, input)
 }
 
 // SetCommentsEnabled is the resolver for the setCommentsEnabled field.

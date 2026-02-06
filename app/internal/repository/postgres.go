@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/RoGogDBD/GQLGo/internal/models"
@@ -125,26 +124,6 @@ func (r *PostgresPostRepo) GetByID(ctx context.Context, id string) (*models.Post
 }
 
 func (r *PostgresPostRepo) Create(ctx context.Context, in models.CreatePostInput) (*models.Post, error) {
-	// ===================== Валидация входных данных =====================
-	if in.AuthorID == "" {
-		return nil, fmt.Errorf("требуется id автора")
-	}
-	title := strings.TrimSpace(in.Title)
-	if title == "" {
-		return nil, fmt.Errorf("требуется заголовок")
-	}
-	if len(title) > 100 {
-		return nil, fmt.Errorf("заголовок слишком длинный")
-	}
-	body := strings.TrimSpace(in.Body)
-	if body == "" {
-		return nil, fmt.Errorf("требуется тело поста")
-	}
-	if len(body) > 2000 {
-		return nil, fmt.Errorf("тело длинное (<= 2000 симв.)")
-	}
-	// ==============================================================
-
 	commentsEnabled := true
 	if in.CommentsEnabled != nil {
 		commentsEnabled = *in.CommentsEnabled
@@ -155,7 +134,7 @@ func (r *PostgresPostRepo) Create(ctx context.Context, in models.CreatePostInput
 	_, err := r.db.NewRaw(`
 		INSERT INTO posts (id, title, body, comments_enabled, author_id)
 		VALUES (?, ?, ?, ?, ?)
-	`, id, title, body, commentsEnabled, in.AuthorID).Exec(ctx)
+	`, id, in.Title, in.Body, commentsEnabled, in.AuthorID).Exec(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("создание поста: %w", err)
 	}
@@ -247,7 +226,7 @@ func (r *PostgresCommentRepo) GetMeta(ctx context.Context, id string) (string, i
 	return meta.PostID, meta.Depth, nil
 }
 
-// Create создает комментарий и (если нужно) обновляет счетчик детей у родителя.
+// Create создает комментарий и может обновить счетчик.
 func (r *PostgresCommentRepo) Create(ctx context.Context, postID, authorID string, parentID *string, body string, depth int) (*models.Comment, error) {
 	id := uuid.NewString()
 	now := time.Now()
@@ -313,6 +292,7 @@ func (r *PostgresCommentRepo) Create(ctx context.Context, postID, authorID strin
 	}, nil
 }
 
+// ListByParent список комментариев для поста и род с пагинацией и сортировкой.
 func (r *PostgresCommentRepo) ListByParent(ctx context.Context, postID string, parentID *string, first int32, after *string, order models.CommentOrder) ([]*models.Comment, *string, error) {
 	if postID == "" {
 		return nil, nil, fmt.Errorf("требуется id поста")

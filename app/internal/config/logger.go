@@ -6,13 +6,13 @@ import (
 	"github.com/RoGogDBD/GQLGo/internal/service"
 )
 
-type printfLogger struct {
+type Logger struct {
 	*zap.SugaredLogger
 }
 
-func (l printfLogger) Infof(format string, args ...any)  { l.SugaredLogger.Infof(format, args...) }
-func (l printfLogger) Warnf(format string, args ...any)  { l.SugaredLogger.Warnf(format, args...) }
-func (l printfLogger) Errorf(format string, args ...any) { l.SugaredLogger.Errorf(format, args...) }
+func (l Logger) Infof(format string, args ...any)  { l.SugaredLogger.Infof(format, args...) }
+func (l Logger) Warnf(format string, args ...any)  { l.SugaredLogger.Warnf(format, args...) }
+func (l Logger) Errorf(format string, args ...any) { l.SugaredLogger.Errorf(format, args...) }
 
 // NewLogger инициализация.
 func NewLogger() (service.Logger, func(), error) {
@@ -23,5 +23,5 @@ func NewLogger() (service.Logger, func(), error) {
 	cleanup := func() {
 		_ = zapLogger.Sync()
 	}
-	return printfLogger{zapLogger.Sugar()}, cleanup, nil
+	return Logger{zapLogger.Sugar()}, cleanup, nil
 }
