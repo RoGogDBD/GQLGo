@@ -23,7 +23,7 @@ func NewRouter(resolver *graph.Resolver) *gin.Engine {
 	srv.AddTransport(transport.GET{})
 	srv.AddTransport(transport.POST{})
 	srv.SetQueryCache(lru.New[*ast.QueryDocument](1000))
-	srv.Use(extension.AutomaticPersistedQuery{})
+	srv.Use(extension.AutomaticPersistedQuery{Cache: lru.New[string](1000)})
 
 	r.GET("/", gin.WrapH(playground.Handler("GraphQL playground", "/query")))
 	r.POST("/query", gin.WrapH(srv))
