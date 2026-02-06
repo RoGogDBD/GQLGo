@@ -39,7 +39,6 @@ func LoadFromEnv() Config {
 	if v := os.Getenv("USE_POSTGRES"); v != "" {
 		cfg.UsePostgres = v == "true" || v == "1" || v == "yes" || v == "y"
 	} else if v := os.Getenv("POSTGRES"); v != "" {
-		// Backward compatibility with older env name.
 		cfg.UsePostgres = v == "true" || v == "1" || v == "yes" || v == "y"
 	}
 
