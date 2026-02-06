@@ -11,7 +11,7 @@ import (
 
 	"github.com/RoGogDBD/GQLGo/internal/config"
 	"github.com/RoGogDBD/GQLGo/internal/handler"
-	"github.com/RoGogDBD/GQLGo/internal/logging"
+	"github.com/RoGogDBD/GQLGo/internal/logger"
 	"github.com/RoGogDBD/GQLGo/internal/qraphql/graph"
 	"github.com/RoGogDBD/GQLGo/internal/repository"
 	"github.com/RoGogDBD/GQLGo/internal/service"
@@ -41,7 +41,7 @@ func main() {
 	}
 }
 
-func run(logger logging.Logger) error {
+func run(logger logger.Logger) error {
 	// ===================== Кофигурация =====================
 	cfg, err := config.Load()
 	if err != nil {

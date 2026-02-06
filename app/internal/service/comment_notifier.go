@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/RoGogDBD/GQLGo/internal/logging"
+	"github.com/RoGogDBD/GQLGo/internal/logger"
 	"github.com/RoGogDBD/GQLGo/internal/models"
 )
 
@@ -19,7 +19,7 @@ type (
 	CommentNotifier struct {
 		mu       sync.RWMutex
 		byPostID map[string][]commentSubscriber
-		logger   logging.Logger
+		logger   logger.Logger
 	}
 
 	commentSubscriber struct {
@@ -28,7 +28,7 @@ type (
 	}
 )
 
-func NewCommentNotifier(logger logging.Logger) *CommentNotifier {
+func NewCommentNotifier(logger logger.Logger) *CommentNotifier {
 	return &CommentNotifier{
 		byPostID: make(map[string][]commentSubscriber),
 		logger:   logger,

@@ -8,7 +8,7 @@ import (
 )
 
 // Тест на создание поста и его погинацию.
-func TestMemoryPostRepo_CreateList_Table(t *testing.T) {
+func TestMemoryPostRepo_CreateList(t *testing.T) {
 	tests := []struct {
 		name       string
 		createCnt  int
@@ -56,7 +56,7 @@ func TestMemoryPostRepo_CreateList_Table(t *testing.T) {
 }
 
 // Тест на выборку корневых и дочерних комментариев.
-func TestMemoryCommentRepo_ListByParent_Table(t *testing.T) {
+func TestMemoryCommentRepo_ListByParent(t *testing.T) {
 	tests := []struct {
 		name        string
 		createChild bool
