@@ -6,6 +6,8 @@ import (
 	"github.com/RoGogDBD/GQLGo/internal/models"
 )
 
+const defaultPageSize = 10
+
 func CloneUser(u *models.User) *models.User {
 	if u == nil {
 		return nil
@@ -48,4 +50,38 @@ func SortCommentIDs(ids []string, comments map[string]*models.Comment, order mod
 		}
 		return a.CreatedAt.After(b.CreatedAt)
 	})
+}
+
+func PaginateIDs(ids []string, after *string, first int32) []string {
+	if first <= 0 {
+		first = defaultPageSize
+	}
+
+	start := 0
+	if after != nil && *after != "" {
+		for i, id := range ids {
+			if id == *after {
+				start = i + 1
+				break
+			}
+		}
+	}
+
+	end := start + int(first)
+	if end > len(ids) {
+		end = len(ids)
+	}
+	if start > len(ids) {
+		start = len(ids)
+	}
+	return ids[start:end]
+}
+
+func RemoveID(ids []string, id string) []string {
+	for i := 0; i < len(ids); i++ {
+		if ids[i] == id {
+			return append(ids[:i], ids[i+1:]...)
+		}
+	}
+	return ids
 }

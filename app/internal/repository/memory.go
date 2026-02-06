@@ -13,11 +13,11 @@ import (
 )
 
 var (
-	ErrEmptyID      = errors.New("неверный id")
-	ErrNotFound     = errors.New("не найдено")
+	ErrEmptyID = errors.New("неверный id")
+	// ErrNotFound     = errors.New("не найдено")
 	ErrAlreadyExist = errors.New("уже существует")
 	ErrNilEntity    = errors.New("пустая сущность")
-	ErrBadCursor    = errors.New("неверный курсор")
+	// ErrBadCursor    = errors.New("неверный курсор")
 )
 
 type MemoryStorage struct {
@@ -69,101 +69,6 @@ func NewMemoryStorageWithTTL(ttl time.Duration) *MemoryStorage {
 func NewMemoryPostRepo(st *MemoryStorage) *MemoryPostRepo       { return &MemoryPostRepo{st: st} }
 func NewMemoryUserRepo(st *MemoryStorage) *MemoryUserRepo       { return &MemoryUserRepo{st: st} }
 func NewMemoryCommentRepo(st *MemoryStorage) *MemoryCommentRepo { return &MemoryCommentRepo{st: st} }
-
-func (st *MemoryStorage) maybePrune(now time.Time) {
-	if st.ttl <= 0 {
-		return
-	}
-	if !st.lastPrune.IsZero() && now.Sub(st.lastPrune) < st.pruneInterval {
-		return
-	}
-	st.lastPrune = now
-	st.pruneExpired(now)
-}
-
-func removeID(ids []string, id string) []string {
-	for i := 0; i < len(ids); i++ {
-		if ids[i] == id {
-			return append(ids[:i], ids[i+1:]...)
-		}
-	}
-	return ids
-}
-
-func (st *MemoryStorage) pruneExpired(now time.Time) {
-	// posts
-	if st.ttl > 0 {
-		for id, ts := range st.postCreated {
-			if now.Sub(ts) > st.ttl {
-				delete(st.posts, id)
-				delete(st.postCreated, id)
-				st.postOrder = removeID(st.postOrder, id)
-				// remove comments for this post
-				for _, cid := range st.byPost[id] {
-					st.deleteCommentLocked(cid)
-				}
-				delete(st.byPost, id)
-			}
-		}
-		// users
-		for id, ts := range st.userCreated {
-			if now.Sub(ts) > st.ttl {
-				delete(st.users, id)
-				delete(st.userCreated, id)
-			}
-		}
-		// comments
-		for id, ts := range st.commentCreated {
-			if now.Sub(ts) > st.ttl {
-				st.deleteCommentLocked(id)
-			}
-		}
-	}
-}
-
-func (st *MemoryStorage) deleteCommentLocked(id string) {
-	c := st.comments[id]
-	if c == nil {
-		return
-	}
-	delete(st.comments, id)
-	delete(st.commentCreated, id)
-	if c.ParentID != nil {
-		parentKey := *c.ParentID
-		st.byParent[parentKey] = removeID(st.byParent[parentKey], id)
-		if parent := st.comments[parentKey]; parent != nil && parent.ChildrenCount > 0 {
-			parent.ChildrenCount--
-		}
-	} else {
-		st.byParent[""] = removeID(st.byParent[""], id)
-	}
-	st.byPost[c.PostID] = removeID(st.byPost[c.PostID], id)
-}
-
-func paginateIDs(ids []string, after *string, first int32) []string {
-	if first <= 0 {
-		first = DefaultPageSize
-	}
-
-	start := 0
-	if after != nil && *after != "" {
-		for i, id := range ids {
-			if id == *after {
-				start = i + 1
-				break
-			}
-		}
-	}
-
-	end := start + int(first)
-	if end > len(ids) {
-		end = len(ids)
-	}
-	if start > len(ids) {
-		start = len(ids)
-	}
-	return ids[start:end]
-}
 
 // ======================== POST REPO ========================
 func (r *MemoryPostRepo) GetByID(ctx context.Context, id string) (*models.Post, error) {
@@ -243,7 +148,7 @@ func (r *MemoryPostRepo) List(ctx context.Context, first int32, after *string) (
 	r.st.mu.RLock()
 	defer r.st.mu.RUnlock()
 
-	ids := paginateIDs(r.st.postOrder, after, first)
+	ids := repository.PaginateIDs(r.st.postOrder, after, first)
 	posts := make([]*models.Post, 0, len(ids))
 	for _, id := range ids {
 		if p := r.st.posts[id]; p != nil {
@@ -311,7 +216,7 @@ func (r *MemoryUserRepo) List(ctx context.Context, first int32, after *string) (
 	r.st.mu.RLock()
 	defer r.st.mu.RUnlock()
 
-	ids := paginateIDs(repository.SortedKeys(r.st.users), after, first)
+	ids := repository.PaginateIDs(repository.SortedKeys(r.st.users), after, first)
 	users := make([]*models.User, 0, len(ids))
 	for _, id := range ids {
 		if u := r.st.users[id]; u != nil {
@@ -440,7 +345,7 @@ func (r *MemoryCommentRepo) ListByParent(ctx context.Context, postID string, par
 	//	})
 	//}
 
-	filtered = paginateIDs(filtered, after, first)
+	filtered = repository.PaginateIDs(filtered, after, first)
 
 	out := make([]*models.Comment, 0, len(filtered))
 	for _, id := range filtered {
@@ -450,4 +355,63 @@ func (r *MemoryCommentRepo) ListByParent(ctx context.Context, postID string, par
 	}
 
 	return out, repository.LastID(out, func(c *models.Comment) string { return c.ID }), nil
+}
+
+// TRASH...
+
+func (st *MemoryStorage) maybePrune(now time.Time) {
+	if st.ttl <= 0 {
+		return
+	}
+	if !st.lastPrune.IsZero() && now.Sub(st.lastPrune) < st.pruneInterval {
+		return
+	}
+	st.lastPrune = now
+	st.pruneExpired(now)
+}
+
+func (st *MemoryStorage) pruneExpired(now time.Time) {
+	if st.ttl > 0 {
+		for id, ts := range st.postCreated {
+			if now.Sub(ts) > st.ttl {
+				delete(st.posts, id)
+				delete(st.postCreated, id)
+				st.postOrder = repository.RemoveID(st.postOrder, id)
+				for _, cid := range st.byPost[id] {
+					st.deleteCommentLocked(cid)
+				}
+				delete(st.byPost, id)
+			}
+		}
+		for id, ts := range st.userCreated {
+			if now.Sub(ts) > st.ttl {
+				delete(st.users, id)
+				delete(st.userCreated, id)
+			}
+		}
+		for id, ts := range st.commentCreated {
+			if now.Sub(ts) > st.ttl {
+				st.deleteCommentLocked(id)
+			}
+		}
+	}
+}
+
+func (st *MemoryStorage) deleteCommentLocked(id string) {
+	c := st.comments[id]
+	if c == nil {
+		return
+	}
+	delete(st.comments, id)
+	delete(st.commentCreated, id)
+	if c.ParentID != nil {
+		parentKey := *c.ParentID
+		st.byParent[parentKey] = repository.RemoveID(st.byParent[parentKey], id)
+		if parent := st.comments[parentKey]; parent != nil && parent.ChildrenCount > 0 {
+			parent.ChildrenCount--
+		}
+	} else {
+		st.byParent[""] = repository.RemoveID(st.byParent[""], id)
+	}
+	st.byPost[c.PostID] = repository.RemoveID(st.byPost[c.PostID], id)
 }
