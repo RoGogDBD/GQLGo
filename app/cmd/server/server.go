@@ -64,26 +64,26 @@ func run(logger logging.Logger) error {
 
 	switch cfg.UsePostgres {
 	case false:
-		st := repository.NewMemoryStorage(logger)
-		userRepo = repository.NewMemoryUserRepo(st, logger)
-		postRepo = repository.NewMemoryPostRepo(st, logger)
-		commentRepo = repository.NewMemoryCommentRepo(st, logger)
+		st := repository.NewMemoryStorage()
+		userRepo = repository.NewMemoryUserRepo(st)
+		postRepo = repository.NewMemoryPostRepo(st)
+		commentRepo = repository.NewMemoryCommentRepo(st)
 		cleanup = func() error { return nil }
 	default:
-		st, err := storage.NewDataStorage(cfg.DB.DSN, logger)
+		st, err := storage.NewDataStorage(cfg.DB.DSN)
 		if err != nil {
 			return err
 		}
 		cleanup = st.Close
-		userRepo, err = repository.NewPostgresUserRepo(st.DB(), logger)
+		userRepo, err = repository.NewPostgresUserRepo(st.DB())
 		if err != nil {
 			return err
 		}
-		postRepo, err = repository.NewPostgresPostRepo(st.DB(), logger)
+		postRepo, err = repository.NewPostgresPostRepo(st.DB())
 		if err != nil {
 			return err
 		}
-		commentRepo, err = repository.NewPostgresCommentRepo(st.DB(), logger)
+		commentRepo, err = repository.NewPostgresCommentRepo(st.DB())
 		if err != nil {
 			return err
 		}
