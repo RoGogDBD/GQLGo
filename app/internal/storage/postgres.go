@@ -22,13 +22,13 @@ const (
 	maxIdleConns = 10
 )
 
-// DBStorage хранилище данных с подключением к БД.
+// DBStorage хранилище с подключением к БД.
 type DBStorage struct {
 	sqldb *sql.DB
 	db    *bun.DB
 }
 
-// NewDataStorage создает новое подключение к БД.
+// NewDataStorage создает подключение к БД.
 func NewDataStorage(dsn string) (*DBStorage, error) {
 	if err := migrate.RunMigrations(dsn); err != nil {
 		return nil, fmt.Errorf("run migrations: %w", err)
