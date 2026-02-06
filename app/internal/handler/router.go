@@ -30,3 +30,5 @@ func NewRouter(resolver *graph.Resolver) *gin.Engine {
 	r.GET("/query", gin.WrapH(srv))
 	return r
 }
+
+// TODO: НОрмально вынести middleware и кучки
