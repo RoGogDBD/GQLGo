@@ -11,6 +11,7 @@ import (
 
 	"github.com/RoGogDBD/GQLGo/internal/config"
 	"github.com/RoGogDBD/GQLGo/internal/handler"
+	"github.com/RoGogDBD/GQLGo/internal/logging"
 	"github.com/RoGogDBD/GQLGo/internal/qraphql/graph"
 	"github.com/RoGogDBD/GQLGo/internal/repository"
 	"github.com/RoGogDBD/GQLGo/internal/service"
@@ -40,7 +41,7 @@ func main() {
 	}
 }
 
-func run(logger service.Logger) error {
+func run(logger logging.Logger) error {
 	// ===================== Кофигурация =====================
 	cfg, err := config.Load()
 	if err != nil {
@@ -63,26 +64,26 @@ func run(logger service.Logger) error {
 
 	switch cfg.UsePostgres {
 	case false:
-		st := repository.NewMemoryStorage()
-		userRepo = repository.NewMemoryUserRepo(st)
-		postRepo = repository.NewMemoryPostRepo(st)
-		commentRepo = repository.NewMemoryCommentRepo(st)
+		st := repository.NewMemoryStorage(logger)
+		userRepo = repository.NewMemoryUserRepo(st, logger)
+		postRepo = repository.NewMemoryPostRepo(st, logger)
+		commentRepo = repository.NewMemoryCommentRepo(st, logger)
 		cleanup = func() error { return nil }
 	default:
-		st, err := storage.NewDataStorage(cfg.DB.DSN)
+		st, err := storage.NewDataStorage(cfg.DB.DSN, logger)
 		if err != nil {
 			return err
 		}
 		cleanup = st.Close
-		userRepo, err = repository.NewPostgresUserRepo(st.DB())
+		userRepo, err = repository.NewPostgresUserRepo(st.DB(), logger)
 		if err != nil {
 			return err
 		}
-		postRepo, err = repository.NewPostgresPostRepo(st.DB())
+		postRepo, err = repository.NewPostgresPostRepo(st.DB(), logger)
 		if err != nil {
 			return err
 		}
-		commentRepo, err = repository.NewPostgresCommentRepo(st.DB())
+		commentRepo, err = repository.NewPostgresCommentRepo(st.DB(), logger)
 		if err != nil {
 			return err
 		}

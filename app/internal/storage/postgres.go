@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/RoGogDBD/GQLGo/internal/config/migrate"
+	"github.com/RoGogDBD/GQLGo/internal/logging"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
@@ -24,13 +25,17 @@ const (
 
 // DBStorage хранилище с подключением к БД.
 type DBStorage struct {
-	sqldb *sql.DB
-	db    *bun.DB
+	sqldb  *sql.DB
+	db     *bun.DB
+	logger logging.Logger
 }
 
 // NewDataStorage создает подключение к БД.
-func NewDataStorage(dsn string) (*DBStorage, error) {
+func NewDataStorage(dsn string, logger logging.Logger) (*DBStorage, error) {
 	if err := migrate.RunMigrations(dsn); err != nil {
+		if logger != nil {
+			logger.Errorf("run migrations: %v", err)
+		}
 		return nil, fmt.Errorf("run migrations: %w", err)
 	}
 
@@ -47,14 +52,18 @@ func NewDataStorage(dsn string) (*DBStorage, error) {
 
 	if err := sqldb.PingContext(ctx); err != nil {
 		_ = sqldb.Close()
+		if logger != nil {
+			logger.Errorf("db ping: %v", err)
+		}
 		return nil, fmt.Errorf("db ping: %w", err)
 	}
 
 	db := bun.NewDB(sqldb, pgdialect.New())
 
 	return &DBStorage{
-		sqldb: sqldb,
-		db:    db,
+		sqldb:  sqldb,
+		db:     db,
+		logger: logger,
 	}, nil
 }
 

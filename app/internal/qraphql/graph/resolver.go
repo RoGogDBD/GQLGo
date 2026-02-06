@@ -3,6 +3,7 @@
 package graph
 
 import (
+	"github.com/RoGogDBD/GQLGo/internal/logging"
 	"github.com/RoGogDBD/GQLGo/internal/repository"
 	"github.com/RoGogDBD/GQLGo/internal/service"
 )
@@ -23,6 +24,6 @@ type Resolver struct {
 	PostRepo        repository.PostRepo
 	CommentRepo     repository.CommentRepo
 	CommentNotifier *service.CommentNotifier
-	Logger          service.Logger
+	Logger          logging.Logger
 	PostService     *service.PostService
 }

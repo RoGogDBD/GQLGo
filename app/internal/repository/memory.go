@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/RoGogDBD/GQLGo/internal/logging"
 	"github.com/RoGogDBD/GQLGo/internal/models"
 	"github.com/RoGogDBD/GQLGo/internal/utils/repository"
 	"github.com/google/uuid"
@@ -36,6 +37,7 @@ type MemoryStorage struct {
 	ttl           time.Duration
 	lastPrune     time.Time
 	pruneInterval time.Duration
+	logger        logging.Logger
 }
 
 type (
@@ -45,11 +47,11 @@ type (
 )
 
 // ==================== Конструктор ====================
-func NewMemoryStorage() *MemoryStorage {
-	return NewMemoryStorageWithTTL(24 * time.Hour)
+func NewMemoryStorage(logger logging.Logger) *MemoryStorage {
+	return NewMemoryStorageWithTTL(24*time.Hour, logger)
 }
 
-func NewMemoryStorageWithTTL(ttl time.Duration) *MemoryStorage {
+func NewMemoryStorageWithTTL(ttl time.Duration, logger logging.Logger) *MemoryStorage {
 	return &MemoryStorage{
 		users:          map[string]*models.User{},
 		userCreated:    map[string]time.Time{},
@@ -62,13 +64,23 @@ func NewMemoryStorageWithTTL(ttl time.Duration) *MemoryStorage {
 		byParent:       map[string][]string{},
 		ttl:            ttl,
 		pruneInterval:  time.Minute,
+		logger:         logger,
 	}
 }
 
 // ==================== Конструктор репозиториев ====================
-func NewMemoryPostRepo(st *MemoryStorage) *MemoryPostRepo       { return &MemoryPostRepo{st: st} }
-func NewMemoryUserRepo(st *MemoryStorage) *MemoryUserRepo       { return &MemoryUserRepo{st: st} }
-func NewMemoryCommentRepo(st *MemoryStorage) *MemoryCommentRepo { return &MemoryCommentRepo{st: st} }
+func NewMemoryPostRepo(st *MemoryStorage, logger logging.Logger) *MemoryPostRepo {
+	st.logger = logger
+	return &MemoryPostRepo{st: st}
+}
+func NewMemoryUserRepo(st *MemoryStorage, logger logging.Logger) *MemoryUserRepo {
+	st.logger = logger
+	return &MemoryUserRepo{st: st}
+}
+func NewMemoryCommentRepo(st *MemoryStorage, logger logging.Logger) *MemoryCommentRepo {
+	st.logger = logger
+	return &MemoryCommentRepo{st: st}
+}
 
 func (st *MemoryStorage) maybePrune(now time.Time) {
 	if st.ttl <= 0 {
@@ -79,6 +91,12 @@ func (st *MemoryStorage) maybePrune(now time.Time) {
 	}
 	st.lastPrune = now
 	st.pruneExpired(now)
+}
+
+func (st *MemoryStorage) logErr(msg string, err error) {
+	if st.logger != nil && err != nil {
+		st.logger.Errorf("%s: %v", msg, err)
+	}
 }
 
 func removeID(ids []string, id string) []string {
@@ -171,6 +189,7 @@ func (r *MemoryPostRepo) GetByID(ctx context.Context, id string) (*models.Post, 
 		return nil, err
 	}
 	if id == "" {
+		r.st.logErr("получение поста", ErrEmptyID)
 		return nil, ErrEmptyID
 	}
 
@@ -210,6 +229,7 @@ func (r *MemoryPostRepo) Create(ctx context.Context, in models.CreatePostInput) 
 		return nil, ErrNilEntity
 	}
 	if p.ID == "" {
+		r.st.logErr("создание поста", ErrEmptyID)
 		return nil, ErrEmptyID
 	}
 
@@ -219,6 +239,7 @@ func (r *MemoryPostRepo) Create(ctx context.Context, in models.CreatePostInput) 
 	r.st.maybePrune(now)
 
 	if r.st.posts[p.ID] != nil {
+		r.st.logErr("создание поста", ErrAlreadyExist)
 		return nil, ErrAlreadyExist
 	}
 
@@ -258,6 +279,7 @@ func (r *MemoryPostRepo) SetCommentsEnabled(ctx context.Context, postID string, 
 		return nil, err
 	}
 	if postID == "" {
+		r.st.logErr("обновление комментариев", ErrEmptyID)
 		return nil, ErrEmptyID
 	}
 
@@ -280,6 +302,7 @@ func (r *MemoryUserRepo) GetByID(ctx context.Context, id string) (*models.User, 
 		return nil, err
 	}
 	if id == "" {
+		r.st.logErr("получение пользователя", ErrEmptyID)
 		return nil, ErrEmptyID
 	}
 
@@ -327,6 +350,7 @@ func (r *MemoryCommentRepo) GetMeta(ctx context.Context, id string) (string, int
 		return "", 0, err
 	}
 	if id == "" {
+		r.st.logErr("получение комментария", ErrEmptyID)
 		return "", 0, ErrEmptyID
 	}
 
@@ -350,6 +374,7 @@ func (r *MemoryCommentRepo) Create(ctx context.Context, postID, authorID string,
 		return nil, err
 	}
 	if postID == "" || authorID == "" {
+		r.st.logErr("создание комментария", ErrEmptyID)
 		return nil, ErrEmptyID
 	}
 
@@ -399,6 +424,7 @@ func (r *MemoryCommentRepo) ListByParent(ctx context.Context, postID string, par
 		return nil, nil, err
 	}
 	if postID == "" {
+		r.st.logErr("список комментариев", ErrEmptyID)
 		return nil, nil, ErrEmptyID
 	}
 	if first <= 0 {

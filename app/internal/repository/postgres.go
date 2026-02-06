@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/RoGogDBD/GQLGo/internal/logging"
 	"github.com/RoGogDBD/GQLGo/internal/models"
 	"github.com/RoGogDBD/GQLGo/internal/utils/repository"
 	"github.com/google/uuid"
@@ -15,15 +16,18 @@ import (
 
 type (
 	PostgresUserRepo struct {
-		db *bun.DB
+		db     *bun.DB
+		logger logging.Logger
 	}
 
 	PostgresPostRepo struct {
-		db *bun.DB
+		db     *bun.DB
+		logger logging.Logger
 	}
 
 	PostgresCommentRepo struct {
-		db *bun.DB
+		db     *bun.DB
+		logger logging.Logger
 	}
 )
 
@@ -41,14 +45,20 @@ type commentInsertRow struct {
 	UpdatedAt     time.Time `bun:"updated_at"`
 }
 
-func NewPostgresUserRepo(db *bun.DB) (*PostgresUserRepo, error) {
-	return &PostgresUserRepo{db: db}, nil
+func logErr(l logging.Logger, msg string, err error) {
+	if l != nil && err != nil {
+		l.Errorf("%s: %v", msg, err)
+	}
 }
-func NewPostgresPostRepo(db *bun.DB) (*PostgresPostRepo, error) {
-	return &PostgresPostRepo{db: db}, nil
+
+func NewPostgresUserRepo(db *bun.DB, logger logging.Logger) (*PostgresUserRepo, error) {
+	return &PostgresUserRepo{db: db, logger: logger}, nil
 }
-func NewPostgresCommentRepo(db *bun.DB) (*PostgresCommentRepo, error) {
-	return &PostgresCommentRepo{db: db}, nil
+func NewPostgresPostRepo(db *bun.DB, logger logging.Logger) (*PostgresPostRepo, error) {
+	return &PostgresPostRepo{db: db, logger: logger}, nil
+}
+func NewPostgresCommentRepo(db *bun.DB, logger logging.Logger) (*PostgresCommentRepo, error) {
+	return &PostgresCommentRepo{db: db, logger: logger}, nil
 }
 
 // ============================== USER REPO ==============================
@@ -66,6 +76,7 @@ func (r *PostgresUserRepo) GetByID(ctx context.Context, id string) (*models.User
 		return nil, nil
 	}
 	if err != nil {
+		logErr(r.logger, "получение пользователя", err)
 		return nil, fmt.Errorf("получение пользователя: %w", err)
 	}
 	return u, nil
@@ -86,6 +97,7 @@ func (r *PostgresUserRepo) List(ctx context.Context, first int32, after *string)
 
 	repository.ApplyAfterByID(query, after, "id")
 	if err := query.Scan(ctx); err != nil {
+		logErr(r.logger, "список юзеров", err)
 		return nil, nil, fmt.Errorf("список юзеров: %w", err)
 	}
 
@@ -111,6 +123,7 @@ func (r *PostgresPostRepo) GetByID(ctx context.Context, id string) (*models.Post
 		return nil, nil
 	}
 	if err != nil {
+		logErr(r.logger, "получение поста", err)
 		return nil, fmt.Errorf("получение поста: %w", err)
 	}
 	p.Comments = &models.CommentConnection{
@@ -134,6 +147,7 @@ func (r *PostgresPostRepo) Create(ctx context.Context, in models.CreatePostInput
 		VALUES (?, ?, ?, ?, ?)
 	`, id, in.Title, in.Body, commentsEnabled, in.AuthorID).Exec(ctx)
 	if err != nil {
+		logErr(r.logger, "создание поста", err)
 		return nil, fmt.Errorf("создание поста: %w", err)
 	}
 
@@ -159,6 +173,7 @@ func (r *PostgresPostRepo) List(ctx context.Context, first int32, after *string)
 	repository.ApplyAfterByID(query, after, "p.id")
 
 	if err := query.Scan(ctx, &posts); err != nil {
+		logErr(r.logger, "список постов", err)
 		return nil, nil, fmt.Errorf("список постов: %w", err)
 	}
 
@@ -188,6 +203,7 @@ func (r *PostgresPostRepo) SetCommentsEnabled(ctx context.Context, postID string
 		Where("id = ?", postID).
 		Exec(ctx)
 	if err != nil {
+		logErr(r.logger, "обновление комментариев", err)
 		return nil, fmt.Errorf("обновление комментариев: %w", err)
 	}
 
@@ -218,6 +234,7 @@ func (r *PostgresCommentRepo) GetMeta(ctx context.Context, id string) (string, i
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", 0, sql.ErrNoRows
 		}
+		logErr(r.logger, "получение комментария", err)
 		return "", 0, fmt.Errorf("получение комментария: %w", err)
 	}
 
@@ -231,6 +248,7 @@ func (r *PostgresCommentRepo) Create(ctx context.Context, postID, authorID strin
 
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
+		logErr(r.logger, "begin tx", err)
 		return nil, fmt.Errorf("begin tx: %w", err)
 	}
 	defer func() {
@@ -254,6 +272,7 @@ func (r *PostgresCommentRepo) Create(ctx context.Context, postID, authorID strin
 		Model(row).
 		Exec(ctx)
 	if err != nil {
+		logErr(r.logger, "создание комментария", err)
 		return nil, fmt.Errorf("создание комментария: %w", err)
 	}
 
@@ -265,11 +284,13 @@ func (r *PostgresCommentRepo) Create(ctx context.Context, postID, authorID strin
 			Where("id = ?", *parentID).
 			Exec(ctx)
 		if err != nil {
+			logErr(r.logger, "обновление родителя", err)
 			return nil, fmt.Errorf("обновление родителя: %w", err)
 		}
 	}
 
 	if err = tx.Commit(); err != nil {
+		logErr(r.logger, "commit", err)
 		return nil, fmt.Errorf("commit: %w", err)
 	}
 
@@ -346,6 +367,7 @@ func (r *PostgresCommentRepo) ListByParent(ctx context.Context, postID string, p
 	}
 
 	if err := query.Scan(ctx, &comments); err != nil {
+		logErr(r.logger, "список комментариев", err)
 		return nil, nil, fmt.Errorf("список комментариев: %w", err)
 	}
 

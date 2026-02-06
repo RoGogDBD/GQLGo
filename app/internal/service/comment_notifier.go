@@ -4,6 +4,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/RoGogDBD/GQLGo/internal/logging"
 	"github.com/RoGogDBD/GQLGo/internal/models"
 )
 
@@ -14,17 +15,11 @@ var (
 	ErrPostIDMismatch = errors.New("postID комментария не совпадает с postID публикации")
 )
 
-type Logger interface {
-	Infof(format string, args ...any)
-	Warnf(format string, args ...any)
-	Errorf(format string, args ...any)
-}
-
 type (
 	CommentNotifier struct {
 		mu       sync.RWMutex
 		byPostID map[string][]commentSubscriber
-		logger   Logger
+		logger   logging.Logger
 	}
 
 	commentSubscriber struct {
@@ -33,7 +28,7 @@ type (
 	}
 )
 
-func NewCommentNotifier(logger Logger) *CommentNotifier {
+func NewCommentNotifier(logger logging.Logger) *CommentNotifier {
 	return &CommentNotifier{
 		byPostID: make(map[string][]commentSubscriber),
 		logger:   logger,
