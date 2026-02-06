@@ -10,15 +10,15 @@ import (
 // Тест на создание поста и его погинацию.
 func TestMemoryPostRepo_CreateList(t *testing.T) {
 	tests := []struct {
-		name       string
-		createCnt  int
-		listFirst  int32
-		wantLen    int
-		wantCursor bool
+		name      string
+		createCnt int
+		listFirst int32
+		len       int
+		cursor    bool
 	}{
-		{name: "Создание одного поста", createCnt: 1, listFirst: 10, wantLen: 1, wantCursor: true},
-		{name: "Без создания", createCnt: 0, listFirst: 10, wantLen: 0, wantCursor: false},
-		{name: "Создание трех постов", createCnt: 3, listFirst: 2, wantLen: 2, wantCursor: true},
+		{name: "Создание одного поста", createCnt: 1, listFirst: 10, len: 1, cursor: true},
+		{name: "Без создания", createCnt: 0, listFirst: 10, len: 0, cursor: false},
+		{name: "Создание трех постов", createCnt: 3, listFirst: 2, len: 2, cursor: true},
 	}
 
 	for _, tc := range tests {
@@ -42,13 +42,13 @@ func TestMemoryPostRepo_CreateList(t *testing.T) {
 			if err != nil {
 				t.Fatalf("список постов: %v", err)
 			}
-			if len(list) != tc.wantLen {
-				t.Fatalf("ожидалось %d постов, а получили %d", tc.wantLen, len(list))
+			if len(list) != tc.len {
+				t.Fatalf("ожидалось %d постов, а получили %d", tc.len, len(list))
 			}
-			if tc.wantCursor && cursor == nil {
+			if tc.cursor && cursor == nil {
 				t.Fatalf("ожидался cursor, got nil")
 			}
-			if !tc.wantCursor && cursor != nil {
+			if !tc.cursor && cursor != nil {
 				t.Fatalf("ожидалось nil, получили %v", cursor)
 			}
 		})
@@ -61,10 +61,10 @@ func TestMemoryCommentRepo_ListByParent(t *testing.T) {
 		name        string
 		createChild bool
 		parentID    *string
-		wantLen     int
+		len         int
 	}{
-		{name: "Только корневой", createChild: false, parentID: nil, wantLen: 1},
-		{name: "Только дочерний", createChild: true, parentID: func() *string { id := "root"; return &id }(), wantLen: 1},
+		{name: "Только корневой", createChild: false, parentID: nil, len: 1},
+		{name: "Только дочерний", createChild: true, parentID: func() *string { id := "root"; return &id }(), len: 1},
 	}
 
 	for _, tc := range tests {
@@ -93,8 +93,8 @@ func TestMemoryCommentRepo_ListByParent(t *testing.T) {
 			if err != nil {
 				t.Fatalf("список комментариев: %v", err)
 			}
-			if len(list) != tc.wantLen {
-				t.Fatalf("ожидалось %d комментариев, а получили %d", tc.wantLen, len(list))
+			if len(list) != tc.len {
+				t.Fatalf("ожидалось %d комментариев, а получили %d", tc.len, len(list))
 			}
 		})
 	}
