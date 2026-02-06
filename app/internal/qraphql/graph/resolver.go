@@ -23,4 +23,5 @@ type Resolver struct {
 	PostRepo        repository.PostRepo
 	CommentRepo     repository.CommentRepo
 	CommentNotifier *service.CommentNotifier
+	Logger          service.Logger
 }

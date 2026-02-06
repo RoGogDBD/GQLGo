@@ -1,26 +1,37 @@
 package service
 
 import (
-	"fmt"
+	"errors"
 	"sync"
 
 	"github.com/RoGogDBD/GQLGo/internal/models"
 )
 
+var (
+	ErrNilComment     = errors.New("пустой комментарий")
+	ErrSendFailed     = errors.New("не удалось отправить коммент")
+	ErrEmptyPostID    = errors.New("пустой postID")
+	ErrPostIDMismatch = errors.New("postID комментария не совпадает с postID публикации")
+)
+
 type Logger interface {
-	Printf(format string, args ...any)
+	Infof(format string, args ...any)
+	Warnf(format string, args ...any)
+	Errorf(format string, args ...any)
 }
 
-type CommentNotifier struct {
-	mu       sync.RWMutex
-	byPostID map[string][]commentSubscriber
-	logger   Logger
-}
+type (
+	CommentNotifier struct {
+		mu       sync.RWMutex
+		byPostID map[string][]commentSubscriber
+		logger   Logger
+	}
 
-type commentSubscriber struct {
-	stream chan *models.Comment
-	done   chan struct{}
-}
+	commentSubscriber struct {
+		stream chan *models.Comment
+		done   chan struct{}
+	}
+)
 
 func NewCommentNotifier(logger Logger) *CommentNotifier {
 	return &CommentNotifier{
@@ -29,7 +40,10 @@ func NewCommentNotifier(logger Logger) *CommentNotifier {
 	}
 }
 
-func (n *CommentNotifier) Subscribe(postID string) (chan *models.Comment, func()) {
+func (n *CommentNotifier) Subscribe(postID string) (chan *models.Comment, func(), error) {
+	if postID == "" {
+		return nil, nil, ErrEmptyPostID
+	}
 	sub := commentSubscriber{
 		stream: make(chan *models.Comment, 1),
 		done:   make(chan struct{}),
@@ -58,21 +72,22 @@ func (n *CommentNotifier) Subscribe(postID string) (chan *models.Comment, func()
 		n.mu.Unlock()
 	}
 
-	return sub.stream, unSub
+	return sub.stream, unSub, nil
 }
 
-func (n *CommentNotifier) Publish(postID string, c *models.Comment) {
+func (n *CommentNotifier) Publish(postID string, c *models.Comment) error {
+	var errs []error
 	if postID == "" {
-		fmt.Errorf("пустой postID в CN")
-		return
+		errs = append(errs, ErrEmptyPostID)
 	}
 	if c == nil {
-		fmt.Errorf("пустой комментарий в CN")
-		return
+		errs = append(errs, ErrNilComment)
 	}
-	if c.PostID != "" && c.PostID != postID {
-		fmt.Errorf("несовпадение postID в CN: %s и %s", c.PostID, postID)
-		return
+	if c != nil && c.PostID != "" && c.PostID != postID {
+		errs = append(errs, ErrPostIDMismatch)
+	}
+	if err := errors.Join(errs...); err != nil {
+		return err
 	}
 
 	n.mu.RLock()
@@ -81,9 +96,10 @@ func (n *CommentNotifier) Publish(postID string, c *models.Comment) {
 
 	for _, sub := range subscribers {
 		if !n.trySend(sub, c) {
-			fmt.Errorf("не удалось отправить коммент")
+			errs = append(errs, ErrSendFailed)
 		}
 	}
+	return errors.Join(errs...)
 }
 
 func (n *CommentNotifier) trySend(sub commentSubscriber, c *models.Comment) (sent bool) {

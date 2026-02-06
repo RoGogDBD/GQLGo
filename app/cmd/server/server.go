@@ -2,10 +2,8 @@ package main
 
 import (
 	"errors"
-	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/RoGogDBD/GQLGo/internal/config"
 	"github.com/RoGogDBD/GQLGo/internal/handler"
@@ -22,26 +20,31 @@ const (
 
 func main() {
 	// ===================== Логгер =====================
-	logger := log.New(os.Stdout, "", log.LstdFlags)
+	logger, cleanup, err := config.NewLogger()
+	if err != nil {
+		_, _ = os.Stdout.WriteString("ошибка при инициализации логера\n")
+		os.Exit(1)
+	}
+	defer cleanup()
 
 	// ===================== Запуск сервера =====================
 	if err := run(logger); err != nil {
 		if !errors.Is(err, http.ErrServerClosed) {
-			log.Printf("error: %v", err)
+			logger.Errorf("error: %v", err)
 		}
 		os.Exit(1)
 	}
 }
 
-func run(logger *log.Logger) error {
+func run(logger service.Logger) error {
 	// ===================== Кофигурация =====================
 	cfg, err := config.Load()
 	if err != nil {
 		if errors.Is(err, config.ErrNoDSN) {
-			logger.Printf(msgNoDSNConfig)
+			logger.Errorf(msgNoDSNConfig)
 		}
 		if errors.Is(err, config.ErrNoAddress) {
-			logger.Printf(msgNoAddrConfig)
+			logger.Errorf(msgNoAddrConfig)
 		}
 		return err
 	}
@@ -70,9 +73,10 @@ func run(logger *log.Logger) error {
 		PostRepo:        postRepo,
 		CommentRepo:     commentRepo,
 		CommentNotifier: service.NewCommentNotifier(logger),
+		Logger:          logger,
 	}
 
 	router := handler.NewRouter(resolver)
-	logger.Printf("connect to %s for GraphQL playground", cfg.Server.Addr)
+	logger.Infof("connect to %s for GraphQL playground", cfg.Server.Addr)
 	return router.Run(cfg.Server.Addr)
 }

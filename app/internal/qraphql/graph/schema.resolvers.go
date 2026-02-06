@@ -68,7 +68,9 @@ func (r *mutationResolver) AddComment(ctx context.Context, input models.AddComme
 		return nil, err
 	}
 	if r.CommentNotifier != nil {
-		r.CommentNotifier.Publish(input.PostID, comment)
+		if err := r.CommentNotifier.Publish(input.PostID, comment); err != nil {
+			r.Logger.Errorf("comment notifier publish: %v", err)
+		}
 	}
 	return comment, nil
 }
@@ -123,7 +125,10 @@ func (r *subscriptionResolver) CommentAdded(ctx context.Context, postID string) 
 		return nil, fmt.Errorf("subscriptions отключены")
 	}
 
-	ch, unsubscribe := r.CommentNotifier.Subscribe(postID)
+	ch, unsubscribe, err := r.CommentNotifier.Subscribe(postID)
+	if err != nil {
+		return nil, err
+	}
 
 	go func() {
 		<-ctx.Done()
